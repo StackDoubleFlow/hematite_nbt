@@ -50,6 +50,13 @@ impl Blob {
         }
     }
 
+    pub fn with_content(content: Map<String, Value>) -> Blob {
+        Blob {
+            title: "".to_string(),
+            content,
+        }
+    }
+
     /// Create a new NBT file format representation with the given name.
     pub fn named<S>(name: S) -> Blob
     where
