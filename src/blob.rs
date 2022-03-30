@@ -37,8 +37,8 @@ use value::Value;
 /// ```
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Blob {
-    title: String,
-    content: Map<String, Value>,
+    pub title: String,
+    pub content: Map<String, Value>,
 }
 
 impl Blob {
