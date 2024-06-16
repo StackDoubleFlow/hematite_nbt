@@ -20,7 +20,7 @@ where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
 {
-    let mut encoder = Encoder::new(dst, header);
+    let mut encoder = Encoder::new(dst, header, false);
     value.serialize(&mut encoder)
 }
 
@@ -31,7 +31,7 @@ where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
 {
-    let mut encoder = Encoder::new(GzEncoder::new(dst, Compression::default()), header);
+    let mut encoder = Encoder::new(GzEncoder::new(dst, Compression::default()), header, false);
     value.serialize(&mut encoder)
 }
 
@@ -42,7 +42,7 @@ where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
 {
-    let mut encoder = Encoder::new(ZlibEncoder::new(dst, Compression::default()), header);
+    let mut encoder = Encoder::new(ZlibEncoder::new(dst, Compression::default()), header, false);
     value.serialize(&mut encoder)
 }
 
@@ -54,6 +54,7 @@ where
 /// return errors.
 pub struct Encoder<'a, W> {
     writer: W,
+    headless: bool,
     header: Option<&'a str>,
 }
 
@@ -62,18 +63,28 @@ where
     W: io::Write,
 {
     /// Create an encoder with optional `header` from a given Writer.
-    pub fn new(writer: W, header: Option<&'a str>) -> Self {
-        Encoder { writer, header }
+    /// If `headless` is set to true, no name will be serialized for the
+    /// root tag. This is useful for the NBT encoding used in networking
+    /// since 1.20.2 (Protocol 764).
+    pub fn new(writer: W, header: Option<&'a str>, headless: bool) -> Self {
+        Encoder {
+            writer,
+            headless,
+            header,
+        }
     }
 
     /// Write the NBT tag and an optional header to the underlying writer.
     #[inline]
     fn write_header(&mut self, tag: i8, header: Option<&str>) -> Result<()> {
         raw::write_bare_byte(&mut self.writer, tag)?;
-        match header {
-            None => raw::write_bare_short(&mut self.writer, 0).map_err(From::from),
-            Some(h) => raw::write_bare_string(&mut self.writer, h).map_err(From::from),
+        if !self.headless {
+            match header {
+                None => raw::write_bare_short(&mut self.writer, 0)?,
+                Some(h) => raw::write_bare_string(&mut self.writer, h)?,
+            }
         }
+        Ok(())
     }
 }
 
